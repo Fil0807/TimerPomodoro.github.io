@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro Timer</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background: #121212;
+    color: white;
+    font-family: Arial, sans-serif;
+  }
+  .battery-container {
+    width: 60px;
+    height: 150px;
+    border: 3px solid white;
+    border-radius: 10px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .battery-level {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 7px;
+    background-color: green;
+    transition: height 1s linear, background-color 1s linear;
+  }
+  .battery-tip {
+    position: absolute;
+    top: -10px;
+    left: 18px;
+    width: 24px;
+    height: 6px;
+    background: white;
+    border-radius: 2px;
+  }
+  #timer {
+    font-size: 2em;
+    margin-bottom: 10px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    background-color: #1e90ff;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0073e6;
+  }
+</style>
+</head>
+<body>
+
+<div class="battery-container">
+  <div class="battery-tip"></div>
+  <div class="battery-level" id="battery"></div>
+</div>
+
+<div id="timer">25:00</div>
+<button id="start">Inizia</button>
+
+<script>
+  const timerDisplay = document.getElementById('timer');
+  const battery = document.getElementById('battery');
+  const startBtn = document.getElementById('start');
+
+  let phase = "work";
+  let interval;
+
+  function interpolateColor(color1, color2, t) {
+    return [
+      Math.round(color1[0] + (color2[0] - color1[0]) * t),
+      Math.round(color1[1] + (color2[1] - color1[1]) * t),
+      Math.round(color1[2] + (color2[2] - color1[2]) * t)
+    ];
+  }
+
+  function getBatteryColor(level) {
+    // Verde (100%) → Arancione (50%) → Rosso (20%)
+    const green = [0, 255, 0];
+    const orange = [255, 165, 0];
+    const red = [255, 0, 0];
+
+    if (level > 0.5) {
+      const t = (1 - level) / 0.5;
+      const [r, g, b] = interpolateColor(green, orange, t);
+      return `rgb(${r},${g},${b})`;
+    } else if (level > 0.2) {
+      const t = (0.5 - level) / 0.3;
+      const [r, g, b] = interpolateColor(orange, red, t);
+      return `rgb(${r},${g},${b})`;
+    } else {
+      return `rgb(${red[0]},${red[1]},${red[2]})`;
+    }
+  }
+
+  function startCycle() {
+    let duration = phase === "work" ? 0.5 * 60 : 0.5 * 60;
+    let startTime = Date.now();
+    let endTime = startTime + duration * 1000;
+
+    interval = setInterval(() => {
+      let now = Date.now();
+      let remaining = Math.max(0, endTime - now);
+      let minutes = Math.floor(remaining / 60000);
+      let seconds = Math.floor((remaining % 60000) / 1000);
+      timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+      let progress = 1 - remaining / (duration * 1000);
+      let level = phase === "work" ? 1 - progress : progress;
+      battery.style.height = (level * 100) + "%";
+      battery.style.backgroundColor = getBatteryColor(level);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        phase = phase === "work" ? "break" : "work";
+        startCycle();
+      }
+    }, 1000);
+  }
+
+  startBtn.addEventListener('click', () => {
+    clearInterval(interval);
+    phase = "work";
+    startCycle();
+  });
+</script>
+
+</body>
+</html>
